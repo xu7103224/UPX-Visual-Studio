@@ -2068,28 +2068,31 @@ unsigned PeFile::stripDebug(unsigned overlaystart)
 /*************************************************************************
 // pack
 **************************************************************************/
-
+// objs:        节数量 
+// sizeof_ih:   节表大小
 void PeFile::readSectionHeaders(unsigned objs, unsigned sizeof_ih)
 {
     if (!objs) {
         return;
     }
-    isection = New(pe_section_t, objs);
+    isection = New(pe_section_t, objs);//new 一个节
     if (file_size < (off_t)(pe_offset + sizeof_ih + sizeof(pe_section_t)*objs)) {
         char buf[32]; snprintf(buf, sizeof(buf), "too many sections %d", objs);
         throwCantPack(buf);
     }
-    fi->seek(pe_offset+sizeof_ih,SEEK_SET);
-    fi->readx(isection,sizeof(pe_section_t)*objs);
+    fi->seek(pe_offset+sizeof_ih,SEEK_SET); //转到节表头
+    fi->readx(isection,sizeof(pe_section_t)*objs);  //加载节表
     rvamin = isection[0].vaddr;
-    unsigned const rvalast = isection[-1+ objs].vsize + isection[-1+ objs].vaddr;
+    unsigned const rvalast = isection[-1+ objs].vsize + isection[-1+ objs].vaddr; // 获取节表尾部
     for (unsigned j=0; j < objs; ++j) { // expect: first is min, last is max
         unsigned lo = isection[j].vaddr, hi = isection[j].vsize + lo;
+        //判断节结束地址
         if (hi < lo) { // this checks first and last sections, too!
             char buf[64]; snprintf(buf, sizeof(buf),
                 "bad section[%d] wrap-around %#x %#x", j, lo, hi - lo);
             throwCantPack(buf);
         }
+        //判断节起始地址
         if (lo < rvamin) {
             char buf[64]; snprintf(buf, sizeof(buf),
                 "bad section .rva [%d] %#x < [0] %#x", j, lo, rvamin);

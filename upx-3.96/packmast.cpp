@@ -153,32 +153,194 @@ Packer *PackMaster::visitAllPackers(visit_func_t func, InputFile *f, const optio
     // .exe
     //
     if (!o->dos_exe.force_stub) {
-        D(PackDjgpp2);
-        D(PackTmt);
-        D(PackWcle);
-        D(PackW64Pep);
-        D(PackW32Pe);
+        //D(PackDjgpp2);
+		do {
+			PackDjgpp2* const kp = new PackDjgpp2(f);
+			if (o->debug.debug_level)
+				fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+					kp->getFormat(), "PackDjgpp2");
+			if ((p = func(kp, user)) != NULL)
+				return p;
+        } while __acc_cte(0);
+
+        //D(PackTmt);
+        do {
+            PackTmt* const kp = new PackTmt(f);
+            if (o->debug.debug_level)
+                fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                    kp->getFormat(), "PackTmt");
+            if ((p = func(kp, user)) != NULL)
+                return p;
+        } while __acc_cte(0);
+
+        //D(PackWcle);
+        do {
+            PackWcle* const kp = new PackWcle(f);
+            if (o->debug.debug_level)
+                fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                    kp->getFormat(), "PackWcle");
+            if ((p = func(kp, user)) != NULL)
+                return p;
+        } while __acc_cte(0);
+
+        //D(PackW64Pep);
+        do {
+            PackW64Pep* const kp = new PackW64Pep(f);
+            if (o->debug.debug_level)
+                fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                    kp->getFormat(), "PackW64Pep");
+            if ((p = func(kp, user)) != NULL)
+                return p;
+        } while __acc_cte(0);
+
+        //D(PackW32Pe);
+        do {
+            PackW32Pe* const kp = new PackW32Pe(f);
+            if (o->debug.debug_level)
+                fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                    kp->getFormat(), "PackW32Pe");
+            if ((p = func(kp, user)) != NULL)
+                return p;
+        } while __acc_cte(0);
     }
-    D(PackArmPe);
-    D(PackExe);
+
+    //D(PackArmPe);
+    do {
+        PackArmPe* const kp = new PackArmPe(f);
+        if (o->debug.debug_level)
+            fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                kp->getFormat(), "PackArmPe");
+        if ((p = func(kp, user)) != NULL)
+            return p;
+    } while __acc_cte(0);
+
+    //D(PackW32Pe);
+    do {
+        PackW32Pe* const kp = new PackW32Pe(f);
+        if (o->debug.debug_level)
+            fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                kp->getFormat(), "PackW32Pe");
+        if ((p = func(kp, user)) != NULL)
+            return p;
+    } while __acc_cte(0);
+
+    //D(PackExe);
+    do {
+        PackExe* const kp = new PackExe(f);
+        if (o->debug.debug_level)
+            fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                kp->getFormat(), "PackExe");
+        if ((p = func(kp, user)) != NULL)
+            return p;
+    } while __acc_cte(0);
+
 
     //
     // atari
     //
-    D(PackTos);
+    //D(PackTos);
+    do {
+        PackTos* const kp = new PackTos(f);
+        if (o->debug.debug_level)
+            fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                kp->getFormat(), "PackTos");
+        if ((p = func(kp, user)) != NULL)
+            return p;
+    } while __acc_cte(0);
 
     //
     // linux kernel
     //
     D(PackVmlinuxARMEL);
+    do {
+        PackVmlinuxARMEL* const kp = new PackVmlinuxARMEL(f);
+        if (o->debug.debug_level)
+            fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                kp->getFormat(), "PackVmlinuxARMEL");
+        if ((p = func(kp, user)) != NULL)
+            return p;
+    } while __acc_cte(0);
+
     D(PackVmlinuxARMEB);
+    do {
+        PackVmlinuxARMEB* const kp = new PackVmlinuxARMEB(f);
+        if (o->debug.debug_level)
+            fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                kp->getFormat(), "PackVmlinuxARMEB");
+        if ((p = func(kp, user)) != NULL)
+            return p;
+    } while __acc_cte(0);
+
     D(PackVmlinuxPPC32);
+    do {
+        PackVmlinuxPPC32* const kp = new PackVmlinuxPPC32(f);
+        if (o->debug.debug_level)
+            fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                kp->getFormat(), "PackVmlinuxPPC32");
+        if ((p = func(kp, user)) != NULL)
+            return p;
+    } while __acc_cte(0);
+
     D(PackVmlinuxPPC64LE);
+    do {
+        PackVmlinuxPPC64LE* const kp = new PackVmlinuxPPC64LE(f);
+        if (o->debug.debug_level)
+            fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                kp->getFormat(), "PackVmlinuxPPC64LE");
+        if ((p = func(kp, user)) != NULL)
+            return p;
+    } while __acc_cte(0);
+
     D(PackVmlinuxAMD64);
+    do {
+        PackVmlinuxAMD64* const kp = new PackVmlinuxAMD64(f);
+        if (o->debug.debug_level)
+            fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                kp->getFormat(), "PackVmlinuxAMD64");
+        if ((p = func(kp, user)) != NULL)
+            return p;
+    } while __acc_cte(0);
+
     D(PackVmlinuxI386);
+    do {
+        PackVmlinuxI386* const kp = new PackVmlinuxI386(f);
+        if (o->debug.debug_level)
+            fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                kp->getFormat(), "PackVmlinuxI386");
+        if ((p = func(kp, user)) != NULL)
+            return p;
+    } while __acc_cte(0);
+
     D(PackVmlinuzI386);
+    do {
+        PackVmlinuzI386* const kp = new PackVmlinuzI386(f);
+        if (o->debug.debug_level)
+            fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                kp->getFormat(), "PackVmlinuzI386");
+        if ((p = func(kp, user)) != NULL)
+            return p;
+    } while __acc_cte(0);
+
     D(PackBvmlinuzI386);
+    do {
+        PackBvmlinuzI386* const kp = new PackBvmlinuzI386(f);
+        if (o->debug.debug_level)
+            fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                kp->getFormat(), "PackBvmlinuzI386");
+        if ((p = func(kp, user)) != NULL)
+            return p;
+    } while __acc_cte(0);
+
     D(PackVmlinuzARMEL);
+    do {
+        PackVmlinuzARMEL* const kp = new PackVmlinuzARMEL(f);
+        if (o->debug.debug_level)
+            fprintf(stderr, "visitAllPackers: (ver=%d, fmt=%3d) %s\n", kp->getVersion(),
+                kp->getFormat(), "PackVmlinuzARMEL");
+        if ((p = func(kp, user)) != NULL)
+            return p;
+    } while __acc_cte(0);
+
 
     //
     // linux
