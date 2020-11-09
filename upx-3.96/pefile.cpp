@@ -136,7 +136,7 @@ bool PeFile::testUnpackVersion(int version) const
 
 int PeFile::readFileHeader()
 {
-    __packed_struct(exe_header_t)
+    __packed_struct(exe_header_t)// DOS 头
         LE16 mz;
         LE16 m512;
         LE16 p512;
@@ -183,8 +183,9 @@ int PeFile::readFileHeader()
         return 0;
     fi->seek(pe_offset,SEEK_SET);
     readPeHeader();
-    fi->seek(0x200,SEEK_SET);
-    fi->readx(&h,6);
+    //下面这两行没明白什么意思，读了个节名也没用到
+    fi->seek(0x200,SEEK_SET);   // 跳转到节表
+    fi->readx(&h,6);            // 读取第一个节表的名字 
     return getFormat();
 }
 
@@ -2069,13 +2070,13 @@ unsigned PeFile::stripDebug(unsigned overlaystart)
 // pack
 **************************************************************************/
 // objs:        节数量 
-// sizeof_ih:   节表大小
+// sizeof_ih:   NT头的大小
 void PeFile::readSectionHeaders(unsigned objs, unsigned sizeof_ih)
 {
     if (!objs) {
         return;
     }
-    isection = New(pe_section_t, objs);//new 一个节
+    isection = New(pe_section_t, objs);//new objs个节
     if (file_size < (off_t)(pe_offset + sizeof_ih + sizeof(pe_section_t)*objs)) {
         char buf[32]; snprintf(buf, sizeof(buf), "too many sections %d", objs);
         throwCantPack(buf);
@@ -2156,6 +2157,13 @@ unsigned PeFile::handleStripRelocs(upx_uint64_t ih_imagebase,
     return 0;
 }
 
+/*
+* 从源文件中读取所有节
+* objs： 节数量
+* usize： image size
+* ih_filealign：文件对齐
+* ih_datasize：
+*/
 unsigned PeFile::readSections(unsigned objs, unsigned usize,
                               unsigned ih_filealign, unsigned ih_datasize)
 {

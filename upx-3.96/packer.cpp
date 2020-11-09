@@ -549,7 +549,9 @@ unsigned Packer::findOverlapOverhead(const upx_bytep buf,
 /*************************************************************************
 // file i/o utils
 **************************************************************************/
-
+/*
+* 读取文件头并写入 .000
+*/
 void Packer::handleStub(InputFile *fif, OutputFile *fo, unsigned size)
 {
     if (fo)

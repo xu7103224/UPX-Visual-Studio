@@ -93,7 +93,7 @@ protected:
     virtual bool testUnpackVersion(int version) const;
     virtual void readPeHeader() = 0;
 
-    unsigned pe_offset;
+    unsigned pe_offset; // PE头偏移位置
 
     template <typename LEXX, typename ord_mask_t>
     unsigned processImports0(ord_mask_t ord_mask);
@@ -200,7 +200,7 @@ protected:
         LE32    flags;
     __packed_struct_end()
 
-    pe_section_t *isection;
+    pe_section_t *isection;     // 所有节
     bool isdll;
     bool isrtm;
     bool use_dep_hack;
@@ -541,7 +541,7 @@ protected:
         ddirs_t ddirs[16];
     __packed_struct_end()
 
-    pe_header_t ih, oh;
+    pe_header_t ih, oh;             // NT 头
 };
 
 #endif /* already included */

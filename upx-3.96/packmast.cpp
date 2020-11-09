@@ -133,10 +133,18 @@ static Packer *try_unpack(Packer *p, void *user) {
 //
 **************************************************************************/
 
+/*
+* 测试所有打包器，并返回可用的
+* func： 测试函数
+* f：    源文件
+* o：    选项
+* user： 参数
+*/
 Packer *PackMaster::visitAllPackers(visit_func_t func, InputFile *f, const options_t *o,
                                     void *user) {
     Packer *p = NULL;
 
+    //D 为测试代码宏
 #define D(Klass)                                                                                   \
     ACC_BLOCK_BEGIN                                                                                \
     Klass *const kp = new Klass(f);                                                                \
@@ -184,6 +192,7 @@ Packer *PackMaster::visitAllPackers(visit_func_t func, InputFile *f, const optio
         } while __acc_cte(0);
 
         //D(PackW64Pep);
+        // 64位PE文件
         do {
             PackW64Pep* const kp = new PackW64Pep(f);
             if (o->debug.debug_level)
@@ -194,6 +203,7 @@ Packer *PackMaster::visitAllPackers(visit_func_t func, InputFile *f, const optio
         } while __acc_cte(0);
 
         //D(PackW32Pe);
+        // 32位PE文件
         do {
             PackW32Pe* const kp = new PackW32Pe(f);
             if (o->debug.debug_level)
