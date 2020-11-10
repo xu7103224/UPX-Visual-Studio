@@ -92,12 +92,18 @@ bool mem_size_valid(upx_uint64_t element_size, upx_uint64_t n, upx_uint64_t extr
     return true;
 }
 
+/*
+* 判断参数是否大于(768 * 1024 * 1024)
+*/
 bool mem_size_valid_bytes(upx_uint64_t bytes) {
     if (bytes > UPX_RSIZE_MAX)
         return false;
     return true;
 }
 
+/*
+* 获取p1相对于p2的偏移
+*/
 int ptr_diff(const void *p1, const void *p2) {
     assert(p1 != NULL);
     assert(p2 != NULL);

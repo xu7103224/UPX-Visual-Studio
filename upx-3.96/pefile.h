@@ -171,18 +171,18 @@ protected:
     unsigned crelocs;               // rva of preprocessed fixups
     int big_relocs;
 
-    __packed_struct(ddirs_t)
-        LE32    vaddr;
+    __packed_struct(ddirs_t)        // _IMAGE_DATA_DIRECTORY
+        LE32    vaddr;              // rva地址
         LE32    size;
     __packed_struct_end()
-    ddirs_t *iddirs;
-    ddirs_t *oddirs;
+    ddirs_t *iddirs;                // 输入的pe文件数据目录表  
+    ddirs_t *oddirs;                // 输出的pe文件数据目录表
 
-    __packed_struct(import_desc)
-        LE32  oft;      // orig first thunk
+    __packed_struct(import_desc)    // 导入表
+        LE32  oft;      // orig first thunk     // 指向INT （Import Name Table）
         char  _[8];
-        LE32  dllname;
-        LE32  iat;      // import address table
+        LE32  dllname;  // 指向 dll 名字
+        LE32  iat;      // import address table // 指向IAT （Import Address Table）
     __packed_struct_end()
 
     LE32 &IDSIZE(unsigned x);
@@ -476,7 +476,7 @@ protected:
         // 0x74
         LE32    ddirsentries;       // usually 16
 
-        ddirs_t ddirs[16];
+        ddirs_t ddirs[16];          //数据目录表(_IMAGE_DATA_DIRECTORY)
     __packed_struct_end()
 
     pe_header_t ih, oh;

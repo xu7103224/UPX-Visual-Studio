@@ -572,7 +572,10 @@ void Packer::handleStub(InputFile *fif, OutputFile *fo, unsigned size)
     }
 }
 
-
+/*
+* 检查附加资源的合法性
+* overlay： 当前未处理的字节
+*/
 void Packer::checkOverlay(unsigned overlay)
 {
     if ((int)overlay < 0 || (off_t)overlay > file_size)

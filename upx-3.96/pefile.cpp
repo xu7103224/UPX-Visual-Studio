@@ -853,19 +853,19 @@ template <typename LEXX, typename ord_mask_t>
 unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
 {
     unsigned dllnum = 0;
-    unsigned const take = IDSIZE(PEDIR_IMPORT);
-    unsigned const skip = IDADDR(PEDIR_IMPORT);
-    import_desc *im = (import_desc*)ibuf.subref("bad import %#x", skip, take);
-    import_desc * const im_save = im;
-    if (IDADDR(PEDIR_IMPORT))
+    unsigned const take = IDSIZE(PEDIR_IMPORT);     // 导入表数量
+    unsigned const skip = IDADDR(PEDIR_IMPORT);     // 导入表起始
+    import_desc* im = (import_desc*)ibuf.subref("bad import %#x", skip, take);  //从文件缓存中获取导入表
+    import_desc* const im_save = im;
+    if (IDADDR(PEDIR_IMPORT))   // 遍历所有导入表 并对内存合法性检测
     {
         for (;; ++dllnum, ++im) {
             unsigned const skip2 = ptr_diff(im, ibuf);
-            (void)ibuf.subref("bad import %#x", skip2, sizeof(*im));
-            if (!im->dllname)
+            (void)ibuf.subref("bad import %#x", skip2, sizeof(*im));    // 使用 subref 检测内存合法性
+            if (!im->dllname)   // 判断是否到尾部
                 break;
         }
-        im = im_save;
+        im = im_save;   // 回复导入描述符表首地址
     }
 
     struct udll
@@ -2055,14 +2055,14 @@ unsigned PeFile::stripDebug(unsigned overlaystart)
     COMPILE_TIME_ASSERT(sizeof(((debug_dir_t*)0)->_)  == 16)
     COMPILE_TIME_ASSERT(sizeof(((debug_dir_t*)0)->__) ==  4)
 
-    unsigned const take = IDSIZE(PEDIR_DEBUG);
-    unsigned const skip = IDADDR(PEDIR_DEBUG);
-    const debug_dir_t *dd = (const debug_dir_t*)ibuf.subref("bad debug %#x", skip, take);
-    for (unsigned ic = 0; ic < IDSIZE(PEDIR_DEBUG) / sizeof(debug_dir_t); ic++, dd++)
-        if (overlaystart == dd->fpos)
-            overlaystart += dd->size;
-    ibuf.fill(IDADDR(PEDIR_DEBUG), IDSIZE(PEDIR_DEBUG), FILLVAL);
-    return overlaystart;
+    unsigned const take = IDSIZE(PEDIR_DEBUG);      // 获取数量
+    unsigned const skip = IDADDR(PEDIR_DEBUG);      // 获取起始地址
+    const debug_dir_t *dd = (const debug_dir_t*)ibuf.subref("bad debug %#x", skip, take);   // 得到debug dir在文件缓存中的地址
+    for (unsigned ic = 0; ic < IDSIZE(PEDIR_DEBUG) / sizeof(debug_dir_t); ic++, dd++) // 遍历所有debug项
+        if (overlaystart == dd->fpos)   // 判断是否到边界
+            overlaystart += dd->size;   // 延申边界
+    ibuf.fill(IDADDR(PEDIR_DEBUG), IDSIZE(PEDIR_DEBUG), FILLVAL);   // 填充0
+    return overlaystart;    // 返回新的边界
 }
 
 
@@ -2162,7 +2162,7 @@ unsigned PeFile::handleStripRelocs(upx_uint64_t ih_imagebase,
 * objs： 节数量
 * usize： image size
 * ih_filealign：文件对齐
-* ih_datasize：
+* ih_datasize：可选头的 SizeOfInitializedData 字段，代表了所有需要初始化的数据，FileAlignment的整数倍
 */
 unsigned PeFile::readSections(unsigned objs, unsigned usize,
                               unsigned ih_filealign, unsigned ih_datasize)
@@ -2178,12 +2178,14 @@ unsigned PeFile::readSections(unsigned objs, unsigned usize,
 
     //Interval holes(ibuf);
 
-    unsigned ic,jc,overlaystart = 0;
+    unsigned ic,
+        jc,
+        overlaystart = 0;   //节尾部
     ibuf.clear(0, usize);
     for (ic = jc = 0; ic < objs; ic++)
     {
         if (isection[ic].rawdataptr && overlaystart < isection[ic].rawdataptr + isection[ic].size)
-            overlaystart = ALIGN_UP(isection[ic].rawdataptr + isection[ic].size,ih_filealign);
+            overlaystart = ALIGN_UP(isection[ic].rawdataptr + isection[ic].size,ih_filealign);  // 计算得到节尾部
         if (isection[ic].vsize == 0)
             isection[ic].vsize = isection[ic].size;
         if ((isection[ic].flags & PEFL_BSS) || isection[ic].rawdataptr == 0
@@ -2261,7 +2263,7 @@ void PeFile::pack0(OutputFile *fo, ht &ih, ht &oh,
 
     handleStub(fi,fo,pe_offset);
     unsigned overlaystart = readSections(objs, ih.imagesize, ih.filealign, ih.datasize);
-    unsigned overlay = file_size - stripDebug(overlaystart);
+    unsigned overlay = file_size - stripDebug(overlaystart);    //判断是否处理完文件所有字节
     if (overlay >= (unsigned) file_size)
         overlay = 0;
     checkOverlay(overlay);
