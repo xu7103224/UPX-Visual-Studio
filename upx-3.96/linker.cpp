@@ -30,6 +30,9 @@
 
 static unsigned hex(unsigned char c) { return (c & 0xf) + (c > '9' ? 9 : 0); }
 
+/*
+* 更新容器的capacity大小，默认设置为0x10或0x10的整数倍
+*/
 static bool update_capacity(unsigned size, unsigned *capacity) {
     if (size < *capacity)
         return false;
@@ -310,6 +313,12 @@ ElfLinker::Symbol *ElfLinker::findSymbol(const char *name, bool fatal) const {
     return NULL;
 }
 
+/*
+* 添加一个节表
+* sname：节表名
+* sdata：节数据
+* slen：节数据大小
+*/
 ElfLinker::Section *ElfLinker::addSection(const char *sname, const void *sdata, int slen,
                                           unsigned p2align) {
     // printf("addSection: %s len=%d align=%d\n", sname, slen, p2align);
@@ -320,12 +329,17 @@ ElfLinker::Section *ElfLinker::addSection(const char *sname, const void *sdata, 
     assert(sname);
     assert(sname[0]);
     assert(sname[strlen(sname) - 1] != ':');
-    assert(findSection(sname, false) == NULL);
-    Section *sec = new Section(sname, sdata, slen, p2align);
+    assert(findSection(sname, false) == NULL);          // 判断节是否已经存在
+    Section *sec = new Section(sname, sdata, slen, p2align);  // 构造节
     sections[nsections++] = sec;
     return sec;
 }
 
+/*
+* 添加一个符号表
+* section：对应的节表名
+* name：符号表名
+*/
 ElfLinker::Symbol *ElfLinker::addSymbol(const char *name, const char *section,
                                         upx_uint64_t offset) {
     // printf("addSymbol: %s %s 0x%x\n", name, section, offset);
@@ -341,6 +355,11 @@ ElfLinker::Symbol *ElfLinker::addSymbol(const char *name, const char *section,
     return sym;
 }
 
+/*
+* 添加一个重定位表
+* section：节表名
+* symbol：符号表名
+*/
 ElfLinker::Relocation *ElfLinker::addRelocation(const char *section, unsigned off, const char *type,
                                                 const char *symbol, upx_uint64_t add) {
     if (update_capacity(nrelocations, &nrelocations_capacity))
@@ -360,13 +379,18 @@ void ElfLinker::setLoaderAlignOffset(int phase)
 }
 #endif
 
+/*
+* 功能将名称指定的节加入到链表中，同时将节input中的内容写入linker->output字段指向的缓存
+* sname：节名
+* 
+*/
 int ElfLinker::addLoader(const char *sname) {
     assert(sname != NULL);
     if (!sname[0])
         return outputlen;
 
-    char *begin = strdup(sname);
-    char *end = begin + strlen(begin);
+    char *begin = strdup(sname); // 拷贝节名
+    char *end = begin + strlen(begin); // 获取字符串尾部
     for (char *sect = begin; sect < end;) {
         for (char *tokend = sect; *tokend; tokend++)
             if (*tokend == ' ' || *tokend == ',') {
@@ -384,10 +408,10 @@ int ElfLinker::addLoader(const char *sname) {
             }
             if (l) {
                 if (sect[3] == 'D')
-                    alignData(l);
+                    alignData(l);   // 在数据的尾部追加对齐值 l
                 else
-                    alignCode(l);
-                tail->size += l;
+                    alignCode(l);   // 在指令的尾部追加对齐值 l
+                tail->size += l;    // 将对齐长度加载末尾节中
             }
         } else {
             Section *section = findSection(sect);

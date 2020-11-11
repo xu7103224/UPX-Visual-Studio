@@ -591,6 +591,11 @@ class PeFile::ImportLinker : public ElfLinkerAMD64
 
     // encoding of dll and proc names are required, so that our special
     // control characters in the name of sections can work as intended
+    /*
+    * name： 字符串加密
+    * buf：  加密后的字符串
+    * 算法： 将字符串中的每四位加0x61保存到1个字节当中
+    */
     static char *encode_name(const char *name, char *buf)
     {
         char *b = buf;
@@ -604,6 +609,11 @@ class PeFile::ImportLinker : public ElfLinkerAMD64
         return buf;
     }
 
+    /*
+    * 返回加密后的 dll名字串
+    * dll：          dll名
+    * first_char：   首祖母
+    */
     static char *name_for_dll(const char *dll, char first_char)
     {
         assert(dll);
@@ -620,6 +630,13 @@ class PeFile::ImportLinker : public ElfLinkerAMD64
         return encode_name(name + 1 + 2 * l, name + 1) - 1;
     }
 
+    /*
+    * 返回加密后的 dll名+proc名组合字串
+    * dll：          dll名
+    * proc：         函数名
+    * first_char：   首祖母
+    * separator：    分隔符
+    */
     static char *name_for_proc(const char *dll, const char *proc,
                                char first_char, char separator)
     {
@@ -765,7 +782,10 @@ public:
         addLoader("+40D");
         assert(outputlen <= osize);
 
-        //OutputFile::dump("il0.imp", output, outputlen);
+        static bool dump = false;
+        if (dump) {
+            OutputFile::dump("il0.imp", output, outputlen);
+        }
         return outputlen;
     }
 
@@ -899,8 +919,8 @@ unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
     };
 
     // +1 for dllnum=0
-    Array(struct udll, dlls, dllnum+1);
-    Array(struct udll *, idlls, dllnum+1);
+    Array(struct udll, dlls, dllnum + 1);
+    Array(struct udll*, idlls, dllnum + 1);
 
     soimport = 1024; // safety
 
@@ -912,12 +932,12 @@ unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
         dlls[ic].shname = NULL;
         dlls[ic].ordinal = 0;
         dlls[ic].iat = im->iat;
-        unsigned const skip2 = (im->oft ? im->oft : im->iat);
-        dlls[ic].lookupt = (LEXX*)ibuf.subref("bad dll lookupt %#x", skip2, sizeof(LEXX));
-        dlls[ic].original_position = ic;
-        dlls[ic].isk32 = strcasecmp(kernelDll(), (const char*)dlls[ic].name) == 0;
+        unsigned const skip2 = (im->oft ? im->oft : im->iat);   // 获取INT地址，如果为空返回IAT
+        dlls[ic].lookupt = (LEXX*)ibuf.subref("bad dll lookupt %#x", skip2, sizeof(LEXX));  // 得到 IAT 地址
+        dlls[ic].original_position = ic;    // 导入表下表
+        dlls[ic].isk32 = strcasecmp(kernelDll(), (const char*)dlls[ic].name) == 0;  // 是否是KERNEL32.dll
 
-        soimport += strlen(dlls[ic].name) + 1 + 4;
+        soimport += strlen(dlls[ic].name) + 1 + 4;  // dll名称长度
 
         for (IPTR_I(LEXX, tarr, dlls[ic].lookupt); *tarr; tarr += 1)
         {
@@ -929,16 +949,16 @@ unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
             }
             else //it's an import by name
             {
-                IPTR_I(const upx_byte, n, ibuf + *tarr + 2);
+                IPTR_I(const upx_byte, n, ibuf + *tarr + 2);        //n 为函数名
                 unsigned len = strlen(n);
-                soimport += len + 1;
-                if (dlls[ic].shname == NULL || len < strlen (dlls[ic].shname))
-                    dlls[ic].shname = ibuf + *tarr + 2;
+                soimport += len + 1;    // 加一跳过 '\0'
+                if (dlls[ic].shname == NULL || len < strlen(dlls[ic].shname))
+                    dlls[ic].shname = ibuf + *tarr + 2; // 将当前的函数名赋值给shname，这里经过遍历会得到名字最短的第一个函数名，用处？
             }
-            soimport++; // separator
+            soimport++; // separator    
         }
     }
-    oimport = New(upx_byte, soimport);
+    oimport = New(upx_byte, soimport);  //soimport 已经是完整INT的size了
     memset(oimport,0,soimport);
 
     qsort(idlls,dllnum,sizeof (udll*),udll::compare);

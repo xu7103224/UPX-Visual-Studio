@@ -44,22 +44,22 @@ protected:
 
     upx_byte *input;
     int inputlen;
-    upx_byte *output;
-    int outputlen;
+    upx_byte *output;           // 要输出的导入表
+    int outputlen;              // 输出节数据长度
 
-    Section *head;
-    Section *tail;
+    Section *head;              // 节表链表头
+    Section *tail;              // 节表链表尾
 
-    Section **sections;
-    Symbol **symbols;
-    Relocation **relocations;
+    Section **sections;         // 节，默认节项容量由ElfLinker::update_capacity 控制，是16的整数倍， 
+    Symbol **symbols;           // 符号，默认节符号项容量由ElfLinker::update_capacity 控制，是16的整数倍，
+    Relocation **relocations;   // 重定位表，默认重定位项容量由ElfLinker::update_capacity 控制，是16的整数倍， 
 
-    unsigned nsections;
-    unsigned nsections_capacity;
-    unsigned nsymbols;
-    unsigned nsymbols_capacity;
-    unsigned nrelocations;
-    unsigned nrelocations_capacity;
+    unsigned nsections;             // 节数量
+    unsigned nsections_capacity;    // 节表容量
+    unsigned nsymbols;              // 符号数量
+    unsigned nsymbols_capacity;     // 符号表容量
+    unsigned nrelocations;          // 重定位项数量
+    unsigned nrelocations_capacity; // 重定位表容量
 
     bool reloc_done;
 
