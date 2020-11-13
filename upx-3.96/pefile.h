@@ -280,17 +280,21 @@ protected:
         RT_MANIFEST, RT_LAST
     };
 
+    /*
+    * 该类将 base 中的数据分成若干片段保存在 ivarr 数组中
+    */
     class Interval : private noncopyable
     {
         unsigned capacity;
-        void *base;
+        void *base;     // 数据缓存基址
     public:
         struct interval
         {
-            unsigned start, len;
-        } *ivarr;
+            unsigned start, // 相对于base缓存的偏移
+                len;    // 范围
+        } *ivarr;   // 数据片段数组
 
-        unsigned ivnum;
+        unsigned ivnum; // ivarr数组的大小
 
         Interval(void *b);
         ~Interval();

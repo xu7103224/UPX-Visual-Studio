@@ -380,9 +380,14 @@ void ElfLinker::setLoaderAlignOffset(int phase)
 #endif
 
 /*
-* 功能将名称指定的节加入到链表中，同时将节input中的内容写入linker->output字段指向的缓存
-* sname：节名
-* 
+* 参数：
+*   sname：节名
+* 功能：
+*   a、调用findSection获取参数sname指定的节
+*   b、顺序的将Section::input内容拷贝到ElfLinker::output缓存
+*   c、功能将名称指定的节加入到链表中，
+*   d、如果当前section不是 head 则追加section到tail后，并且
+*   e、设置Section::offset为映射到ElfLinker::output的偏移
 */
 int ElfLinker::addLoader(const char *sname) {
     assert(sname != NULL);
@@ -425,14 +430,14 @@ int ElfLinker::addLoader(const char *sname) {
                     tail->size += l;
                 }
             }
-            memcpy(output + outputlen, section->input, section->size);
+            memcpy(output + outputlen, section->input, section->size);  // 顺序的将Section::input内容拷贝到ElfLinker::output缓存
             section->output = output + outputlen;
             // printf("section added: 0x%04x %3d %s\n", outputlen, section->size, section->name);
             outputlen += section->size;
 
-            if (head) {
+            if (head) { //如果当前section不是 head 则追加section到tail后，并且设置Section::offset为映射到ElfLinker::output的偏移
                 tail->next = section;
-                section->offset = tail->offset + tail->size;
+                section->offset = tail->offset + tail->size;    
             } else
                 head = section;
             tail = section;

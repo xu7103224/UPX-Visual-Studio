@@ -202,16 +202,29 @@ PeFile::Interval::~Interval()
     free(ivarr);
 }
 
+/*
+* 添加一个范围到片段
+* start： 数据起始地址
+* len：   数据长度
+*/
 void PeFile::Interval::add(const void *start,unsigned len)
 {
     add(ptr_diff(start,base),len);
 }
 
+/*
+* 添加一个范围到片段
+* start： 数据起始地址
+* end：   数据尾部地址
+*/
 void PeFile::Interval::add(const void *start,const void *end)
 {
     add(ptr_diff(start,base),ptr_diff(end,start));
 }
 
+/*
+* 排序比较器，按地址从低到高排序片段
+*/
 int __acc_cdecl_qsort PeFile::Interval::compare(const void *p1,const void *p2)
 {
     const interval *i1 = (const interval*) p1;
@@ -223,6 +236,11 @@ int __acc_cdecl_qsort PeFile::Interval::compare(const void *p1,const void *p2)
     return 0;
 }
 
+/*
+* 添加一个片段
+* start：偏移，相对于base字段
+* len：  数据长度
+*/
 void PeFile::Interval::add(unsigned start,unsigned len)
 {
     if (ivnum == capacity)
@@ -231,31 +249,42 @@ void PeFile::Interval::add(unsigned start,unsigned len)
     ivarr[ivnum++].len = len;
 }
 
+/*
+* 合并两个 Interval，参数iv中的片段数组会追加到尾部
+*/
 void PeFile::Interval::add(const Interval *iv)
 {
     for (unsigned ic = 0; ic < iv->ivnum; ic++)
         add(iv->ivarr[ic].start,iv->ivarr[ic].len);
 }
 
+/*
+* 将数组按地址排序，并合并连接或重叠的项
+* ivarr： 数组
+* ivnum： 数组大小
+*/
 void PeFile::Interval::flatten()
 {
     if (!ivnum)
         return;
-    qsort(ivarr,ivnum,sizeof (interval),Interval::compare);
+    qsort(ivarr,ivnum,sizeof (interval),Interval::compare); // 按地址排序
     for (unsigned ic = 0; ic < ivnum - 1; ic++)
     {
         unsigned jc;
-        for (jc = ic + 1; jc < ivnum && ivarr[ic].start + ivarr[ic].len >= ivarr[jc].start; jc++)
-            if (ivarr[ic].start + ivarr[ic].len < ivarr[jc].start + ivarr[jc].len)
-                ivarr[ic].len = ivarr[jc].start + ivarr[jc].len - ivarr[ic].start;
+        for (jc = ic + 1; jc < ivnum && ivarr[ic].start + ivarr[ic].len >= ivarr[jc].start; jc++) // 判断是否 ic 项的尾部大于或与 jc 项的起始位置重叠，则执行
+            if (ivarr[ic].start + ivarr[ic].len < ivarr[jc].start + ivarr[jc].len)  // 如果 ic 项的尾部小于 jc 项的尾部，则执行
+                ivarr[ic].len = ivarr[jc].start + ivarr[jc].len - ivarr[ic].start;  // 将 ic 项的与 jc 项合并
         if (jc > ic + 1)
         {
-            memmove(ivarr + ic + 1, ivarr + jc,sizeof(interval) * (ivnum - jc));
+            memmove(ivarr + ic + 1, ivarr + jc,sizeof(interval) * (ivnum - jc));    // 剪掉被合并的项
             ivnum -= jc - ic - 1;
         }
     }
 }
 
+/*
+* 仅清理 ivarr 数组中记录的文件数据（base：指向被压缩文件）
+*/
 void PeFile::Interval::clear()
 {
     for (unsigned ic = 0; ic < ivnum; ic++)
@@ -648,7 +677,7 @@ class PeFile::ImportLinker : public ElfLinkerAMD64
         return procn;
     }
 
-    static const char zeros[sizeof(import_desc)];
+    static const char zeros[sizeof(import_desc)];   // 导入表
 
     enum {
         // the order of identifiers is very important below!!
@@ -732,6 +761,9 @@ class PeFile::ImportLinker : public ElfLinkerAMD64
     }
 
 public:
+    /*
+    * 初始化 *UND* | *ZSTART | Dzero 的section和symbol 
+    */
     explicit ImportLinker(unsigned thunk_size_) : thunk_size(thunk_size_)
     {
         assert(thunk_size == 4 || thunk_size == 8);
@@ -765,6 +797,11 @@ public:
         add((const char*) dll, (const char*) proc, 0);
     }
 
+    /*
+    * 函数名:PeFile::ImportLinker::build
+    * 功能构建：节和节链表
+    * 返回导入节长度（outputlen）
+    */
     unsigned build()
     {
         assert(output == NULL);
@@ -779,7 +816,7 @@ public:
 
         for (unsigned ic = 0; ic < nsections; ic++)
             addLoader(sections[ic]->name);
-        addLoader("+40D");
+        addLoader("+40D");  // 4对齐调整尾部
         assert(outputlen <= osize);
 
         static bool dump = false;
@@ -891,12 +928,12 @@ unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
     struct udll
     {
         const upx_byte *name;
-        const upx_byte *shname;
+        const upx_byte *shname; // 保存函数名 列表（INT）
         unsigned   ordinal;
-        unsigned   iat;
-        LEXX       *lookupt;
-        unsigned   original_position;
-        bool       isk32;
+        unsigned   iat;         // IAT
+        LEXX       *lookupt;    // 位置
+        unsigned   original_position;   // 
+        bool       isk32;       // 是否为KERNEL32.dll
 
         static int __acc_cdecl_qsort compare(const void *p1, const void *p2)
         {
@@ -919,8 +956,8 @@ unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
     };
 
     // +1 for dllnum=0
-    Array(struct udll, dlls, dllnum + 1);
-    Array(struct udll*, idlls, dllnum + 1);
+    Array(struct udll, dlls, dllnum + 1);   // dlls：导入dll的数组
+    Array(struct udll*, idlls, dllnum + 1); // idlls：导入的udll的指针数组
 
     soimport = 1024; // safety
 
@@ -965,7 +1002,7 @@ unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
 
     info("Processing imports: %d DLLs", dllnum);
 
-    ilinker = new ImportLinker(sizeof(LEXX));
+    ilinker = new ImportLinker(sizeof(LEXX)); //初始化 *UND* | *ZSTART | Dzero 的section和symbol 
     // create the new import table
     addStubImports();
 
@@ -997,15 +1034,18 @@ unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
         }
     }
 
-    soimpdlls = ilinker->build();
+    soimpdlls = ilinker->build(); // 构建加载器的导入表
 
-    Interval names(ibuf),iats(ibuf),lookups(ibuf);
+    //
+    Interval names(ibuf);   // 记录字符串表地址和范围
+    Interval iats(ibuf);    // 记录IAT表地址和范围
+    Interval lookups(ibuf); // 记录INT表地址和范围
 
     // create the preprocessed data
     upx_byte *ppi = oimport;  // preprocessed imports
     for (ic = 0; ic < dllnum; ic++)
     {
-        LEXX *tarr = idlls[ic]->lookupt;
+        LEXX *tarr = idlls[ic]->lookupt;    // 获取地址
 #if 0 && ENABLE_THIS_AND_UNCOMPRESSION_WILL_BREAK // FIXME
         if (!*tarr)  // no imports from this dll
             continue;
@@ -1042,11 +1082,11 @@ unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
         ppi++;
 
         unsigned esize = ptr_diff((char *)tarr, (char *)idlls[ic]->lookupt);
-        lookups.add(idlls[ic]->lookupt,esize);
+        lookups.add(idlls[ic]->lookupt,esize);  // 保存INT表地址和范围
         if (ptr_diff(ibuf.subref("bad import name %#x", idlls[ic]->iat, 1), (char *)idlls[ic]->lookupt))
         {
             memcpy(ibuf.subref("bad import name %#x", idlls[ic]->iat, esize), idlls[ic]->lookupt, esize);
-            iats.add(idlls[ic]->iat,esize);
+            iats.add(idlls[ic]->iat,esize);     // 保存 IAT表地址和范围
         }
         names.add(idlls[ic]->name,strlen(idlls[ic]->name) + 1 + 1);
     }
@@ -1066,6 +1106,10 @@ unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
         // The area occupied by the dll and imported names is not continuous
         // so to still support uncompression, I can't zero the iat area.
         // This decreases compression ratio, so FIXME somehow.
+
+        // dll和导入的名称所占用的区域不是连续的
+        // 所以为了仍然支持未压缩，我不能使iat区域归零。
+        // 这会降低压缩比，所以可以通过某种方式修复。
         infoWarning("can't remove unneeded imports");
         ilen += sizeof(import_desc) * dllnum;
 #if defined(DEBUG)
@@ -1077,7 +1121,7 @@ unsigned PeFile::processImports0(ord_mask_t ord_mask) // pass 1
         for (ic = 0; ic < dllnum; ic++, im++)
         {
             memset(im,FILLVAL,sizeof(*im));
-            im->dllname = ptr_diff(dlls[idlls[ic]->original_position].name,ibuf);
+            im->dllname = ptr_diff(dlls[idlls[ic]->original_position].name,ibuf);   // 得到文件中的导入dll名地址偏移
         }
     }
     else
@@ -1313,7 +1357,7 @@ void PeFile::processTls1(Interval *iv,
     unsigned const take = ALIGN_UP(IDSIZE(PEDIR_TLS),4u);
     sotls = take;
     if (!sotls)
-        return;
+        return; // TLS 为空
 
     unsigned const skip = IDADDR(PEDIR_TLS);
     const tls * const tlsp = (const tls*)ibuf.subref("bad tls %#x", skip, sizeof(tls));
@@ -1448,8 +1492,8 @@ void PeFile::processLoadConf(Interval *iv) // pass 1
     if (IDSIZE(PEDIR_LOADCONF) == 0)
         return;
 
-    const unsigned lcaddr = IDADDR(PEDIR_LOADCONF);
-    const upx_byte * const loadconf = ibuf.subref("bad loadconf %#x", lcaddr, 4);
+    const unsigned lcaddr = IDADDR(PEDIR_LOADCONF); // 获取加载配置表相对文件的偏移
+    const upx_byte * const loadconf = ibuf.subref("bad loadconf %#x", lcaddr, 4);// 获取加载配置表缓存
     soloadconf = get_le32(loadconf);
     if (soloadconf == 0)
         return;
@@ -2230,6 +2274,7 @@ unsigned PeFile::readSections(unsigned objs, unsigned usize,
             jc = isection[ic].vsize = isection[ic].size;
         if (isection[ic].vaddr + jc > ibuf.getSize())
             throwInternalError("buffer too small 1");
+        //拷贝节
         fi->readx(ibuf.subref("bad section %#x", isection[ic].vaddr, jc), jc);
         jc += isection[ic].rawdataptr;
     }
