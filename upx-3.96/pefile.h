@@ -156,8 +156,8 @@ protected:
 
     void processLoadConf(Reloc *, const Interval *, unsigned);
     void processLoadConf(Interval *);
-    upx_byte *oloadconf;
-    unsigned soloadconf;
+    upx_byte *oloadconf;    // º”‘ÿ≈‰÷√
+    unsigned soloadconf;    // º”‘ÿ≈‰÷√µƒsize
 
     unsigned stripDebug(unsigned);
 

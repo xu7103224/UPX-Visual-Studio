@@ -1494,7 +1494,7 @@ void PeFile::processLoadConf(Interval *iv) // pass 1
 
     const unsigned lcaddr = IDADDR(PEDIR_LOADCONF); // 获取加载配置表相对文件的偏移
     const upx_byte * const loadconf = ibuf.subref("bad loadconf %#x", lcaddr, 4);// 获取加载配置表缓存
-    soloadconf = get_le32(loadconf);
+    soloadconf = get_le32(loadconf);    // 获取size
     if (soloadconf == 0)
         return;
     static unsigned const MAX_SOLOADCONF = 256;  // XXX FIXME: Why?
@@ -1503,19 +1503,19 @@ void PeFile::processLoadConf(Interval *iv) // pass 1
 
     // if there were relocation entries referring to the load config table
     // then we need them for the copy of the table too
-    unsigned const take = IDSIZE(PEDIR_RELOC);
-    unsigned const skip = IDADDR(PEDIR_RELOC);
+    unsigned const take = IDSIZE(PEDIR_RELOC);  // 获取重定位大小
+    unsigned const skip = IDADDR(PEDIR_RELOC);  // 获取重定位表地址
     Reloc rel(ibuf.subref("bad reloc %#x", skip, take), take);
     unsigned pos,type;
-    while (rel.next(pos, type))
+    while (rel.next(pos, type)) // 遍历所有重定位项
         if (pos >= lcaddr && pos < lcaddr + soloadconf)
         {
-            iv->add(pos - lcaddr, type);
+            iv->add(pos - lcaddr, type);    // 添加 重定位信息
             // printf("loadconf reloc detected: %x\n", pos);
         }
 
-    oloadconf = New(upx_byte, soloadconf);
-    memcpy(oloadconf, loadconf, soloadconf);
+    oloadconf = New(upx_byte, soloadconf);  
+    memcpy(oloadconf, loadconf, soloadconf); // 拷贝加载配置
 }
 
 void PeFile::processLoadConf(Reloc *rel, const Interval *iv,
@@ -1955,10 +1955,11 @@ void PeFile::processResources(Resource *res)
         for (int i = 0; i < RT_LAST; i++)
             opt->win32_pe.compress_rt[i] = false;
     }
-    if (opt->win32_pe.compress_rt[RT_STRING] < 0)
+    if (opt->win32_pe.compress_rt[RT_STRING] < 0)   // 自负床压缩配置为设置则转入默认设置
     {
         // by default, don't compress RT_STRINGs of screensavers (".scr")
-        opt->win32_pe.compress_rt[RT_STRING] = true;
+        // 默认情况下，不压缩 screensavers 的 RT_STRINGs 。(".scr")
+        opt->win32_pe.compress_rt[RT_STRING] = true;    //字符串是否压缩
         if (fn_has_ext(fi->getName(),"scr"))
             opt->win32_pe.compress_rt[RT_STRING] = false;
     }
