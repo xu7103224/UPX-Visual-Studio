@@ -60,7 +60,8 @@ public:
           void *getVoidPtr()                { return (void *) b; }
     const void *getVoidPtr() const          { return (const void *) b; }
 
-    void fill(unsigned off, unsigned len, int value);
+    //填充内存，相当于memset
+    void fill(unsigned off, unsigned len, int value);   
     void clear(unsigned off, unsigned len)  { fill(off, len, 0); }
     void clear()                            { fill(0, b_size, 0); }
 

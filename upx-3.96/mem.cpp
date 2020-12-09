@@ -141,7 +141,9 @@ void MemBuffer::allocForUncompression(unsigned uncompressed_size, unsigned extra
     alloc(size);
 }
 
-
+/*
+* 填充内存，相当于memset
+*/
 void MemBuffer::fill(unsigned off, unsigned len, int value)
 {
     checkState();

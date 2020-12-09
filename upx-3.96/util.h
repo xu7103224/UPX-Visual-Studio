@@ -47,6 +47,9 @@ bool mem_size_valid(upx_uint64_t element_size, upx_uint64_t n, upx_uint64_t extr
                     upx_uint64_t extra2 = 0);
 bool mem_size_valid_bytes(upx_uint64_t bytes);
 
+/*
+* 获取p1相对于p2的偏移
+*/
 int ptr_diff(const void *p1, const void *p2);
 unsigned ptr_udiff(const void *p1, const void *p2); // asserts p1 >= p2
 

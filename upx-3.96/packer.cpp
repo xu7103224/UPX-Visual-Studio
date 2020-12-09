@@ -921,7 +921,42 @@ int Packer::patch_le32(void *b, int blen, const void *old, unsigned new_)
 /*************************************************************************
 // relocation util
 **************************************************************************/
-
+/*
+* 函数名: optimizeReloc
+* 功能简介: 优化重定位记录
+* 参数:
+*   in:          输入精简过的重定位表
+*   reocnum:     in中的记录数
+*   out:         输出缓存
+*   image:       代码段拷贝
+*   bswap:       是否倒置代码中的重定位数据字节序（加密）
+*   big:         如果包含间距大于 0x100000的数据偏移会被设为true
+*   bits:        32 或 64
+* 
+* 
+* 重定位信息优化格式介绍: 
+* 保存内容是重定位数据偏移与上一数据偏移之间的距离偏移
+* 1、数据间距小于0x10保存方法：
+*   原数据:0x4,0x14,0x24
+*   保存为:{0x4,0x10,0x10}
+* 
+*   这类数据占用1个字节，直接保存
+* 2、数据间距大于0xF0小于等于0xFFFFF：
+*   原数据:0x4,0x14,0x24,0x12345,0xF0
+*   保存为:{0x4,0x10,0x10,0xF1,0x23,0x45,0xF0,0xF0,0x00}
+* 
+*   0x12345 ->  {0xF1,0x23,0x45}
+*   0xF0    ->  {0xF0,0xF0,0x00}
+*   可见这类数据占用3个字节，第一个字节最高4位为0xF作为标识,低4为数据本身的最高4位，
+*   剩下的16位数据为原数据低16位按小端字节序保存到后两个字节
+* 3、数据间距大于0xFFFFF
+*   原数据:0x4,0x14,0x24,0x123456,0xF0
+*   保存为:{0x4,0x10,0x10,0xf0,0x00,0x00,0x56,0x34,0x12,0x00,0xF0,0xF0,0x00}
+*   
+*   0x123456->  {0xf0,0x00,0x00,0x56,0x34,0x12,0x00}
+*   可见这类数据占用7个字节，前三个字节{0xF0,0x00,0x00}作为标识,
+*   剩下的4个字节按照小端用于保存原始数据
+*/
 upx_byte *Packer::optimizeReloc(upx_byte *in, unsigned relocnum,
                                 upx_byte *out, upx_byte *image,
                                 int bswap, int *big, int bits)
@@ -929,33 +964,71 @@ upx_byte *Packer::optimizeReloc(upx_byte *in, unsigned relocnum,
     if (opt->exact)
         throwCantPackExact();
 
-    *big = 0;
+    *big = 0; // 默认无超大标记false
     if (relocnum == 0)
         return out;
     qsort(in,relocnum,4,le32_compare);
 
-    unsigned jc,pc,oc;
+    unsigned jc;    
+        /*
+        * pc:上一条重定位数据尾部偏移
+        * example:
+        *   code:
+        *   ——————
+        *   00000001 8B EC                                         mov     ebp, esp
+        *   00000003 B9 E5 9D 60 00                                mov     ecx, offset ? g_CRCTableInit@@3VCCRCTableInit@@A; this<<需要重定位的数据
+        *   00000008 E8 A3 1C 00 00                                call ? ? 0CCRCTableInit@@QAE@XZ; CCRCTableInit::CCRCTableInit(void)
+        *   0000000D 5D                                            pop     ebp
+        *   ——————
+        *   
+        *   假设上一个重定位数据为0x00000004,那么pc值为0x8
+        */
+    unsigned pc;
+        /*
+        * oc:相对上一个重定位点的偏移
+        * example:
+        *   code:
+        *   ——————
+        *   00000000 55                                            push    ebp
+        *   00000001 8B EC                                         mov     ebp, esp
+        *   00000003 B9 E5 9D 60 00                                mov     ecx, offset ?g_CRCTableInit@@3VCCRCTableInit@@A ; this
+        *   00000008 E8 A3 1C 00 00                                call    ??0CCRCTableInit@@QAE@XZ ; CCRCTableInit::CCRCTableInit(void)
+        *   0000000D 5D                                            pop     ebp
+        *   0000000E C3                                            retn
+        *   0000000F CC                                            align 10h
+        *   00000010 55                                            push    ebp
+        *   00000011 8B EC                                         mov     ebp, esp
+        *   00000013 B9 E4 9D 60 00                                mov     ecx, offset ?g_FastPosInit@NLZMA@NCompress@@3VCFastPosInit@12@A ; this
+        *   00000018 E8 43 55 00 00                                call    ??0CFastPosInit@NLZMA@NCompress@@QAE@XZ ; NCompress::NLZMA::CFastPosInit::CFastPosInit(void)
+        *   0000001D 5D                                            pop     ebp
+        *   0000001E C3                                            retn
+        *   ——————
+        *   假设上一个地址是 00401000，那么
+        *   优化前的 记录值为 04 (get_le32(in+jc*4)),是相对上一个重定位点的偏移，
+        *   优化后  oc值为8 : 4 - pc(-4) = oc(8)
+        */  
+    unsigned oc;
     upx_byte *fix = out;
 
     pc = (unsigned) -4;
     for (jc = 0; jc<relocnum; jc++)
     {
-        oc = get_le32(in+jc*4) - pc;
+        oc = get_le32(in+jc*4) - pc;    //example 4  - (-4) = 8 得到的是重定位数据的尾部到段首的偏移
         if (oc == 0)
             continue;
-        else if ((int)oc < 4)
+        else if ((int)oc < 4)   //这里不可能小于4，除非出错。。。
             throwCantPack("overlapping fixups");
         else if (oc < 0xF0)
             *fix++ = (unsigned char) oc;
-        else if (oc < 0x100000)
+        else if (oc < 0x100000) 
         {
             *fix++ = (unsigned char) (0xF0+(oc>>16));
             *fix++ = (unsigned char) oc;
             *fix++ = (unsigned char) (oc>>8);
         }
-        else
+        else // 超大偏移
         {
-            *big = 1;
+            *big = 1;   // 设置超大标记为true
             *fix++ = 0xf0;
             *fix++ = 0;
             *fix++ = 0;
@@ -963,7 +1036,15 @@ upx_byte *Packer::optimizeReloc(upx_byte *in, unsigned relocnum,
             fix += 4;
         }
         pc += oc;
-        if (bswap)
+
+        /*
+        * bswap是否倒置代码中的重定位数据字节序
+        * example:
+        *   .text:00000003 B9 E5 9D 60 00                                mov     ecx, offset ?g_CRCTableInit@@3VCCRCTableInit@@A ; this
+        * processed:
+        *   .text:00000003 B9 00 60 9D E5                                mov     ecx, offset ?g_CRCTableInit@@3VCCRCTableInit@@A ; this
+        */
+        if (bswap)  
         {
             if (bits == 32)
                 acc_ua_swab32s(image + pc);

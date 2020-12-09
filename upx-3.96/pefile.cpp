@@ -308,12 +308,19 @@ __packed_struct(PeFile::Reloc::reloc)
     LE32  size;
 __packed_struct_end()
 
+/*
+* 获取新的重定位块起始点
+*/
 void PeFile::Reloc::newRelocPos(void *p)
 {
     rel = (reloc*) p;
     rel1 = (LE16*) ((char*) p + sizeof (reloc));
 }
 
+/*
+* 构造函数
+* 功能：初始化counts中的各类型的重定位信息数量
+*/
 PeFile::Reloc::Reloc(upx_byte *s,unsigned si) :
     start(s), size(si), rel(NULL), rel1(NULL)
 {
@@ -321,6 +328,7 @@ PeFile::Reloc::Reloc(upx_byte *s,unsigned si) :
     COMPILE_TIME_ASSERT_ALIGNED1(reloc)
     memset(counts,0,sizeof(counts));
     unsigned pos,type;
+    //统计各类型的重定位信息数量
     while (next(pos,type))
         counts[type]++;
 }
@@ -332,6 +340,9 @@ PeFile::Reloc::Reloc(unsigned rnum) :
     counts[0] = 0;
 }
 
+/*
+* 获取下一条重定位偏移和类型
+*/
 bool PeFile::Reloc::next(unsigned &pos,unsigned &type)
 {
     if (!rel)
@@ -342,7 +353,7 @@ bool PeFile::Reloc::next(unsigned &pos,unsigned &type)
     pos = rel->pagestart + (*rel1 & 0xfff);
     type = *rel1++ >> 12;
     //printf("%x %d\n",pos,type);
-    if (ptr_diff(rel1,rel) >= (int) rel->size)
+    if (ptr_diff(rel1,rel) >= (int) rel->size)  // 超出边界意味到下一个块了
         newRelocPos(rel1);
     return type == 0 ? next(pos,type) : true;
 }
@@ -395,7 +406,7 @@ void PeFile32::processRelocs() // pass1
     unsigned const skip1 = IDADDR(PEDIR_RELOC);
     Reloc rel(ibuf.subref("bad reloc %#x", skip1, take1), take1);
     const unsigned *counts = rel.getcounts();
-    const unsigned rnum = counts[1] + counts[2] + counts[3];
+    const unsigned rnum = counts[1] + counts[2] + counts[3]; // 获取定位数据总数
 
     if ((opt->win32_pe.strip_relocs && !isdll) || rnum == 0)
     {
@@ -411,38 +422,43 @@ void PeFile32::processRelocs() // pass1
         if (counts[ic])
             infoWarning("skipping unsupported relocation type %d (%d)",ic,counts[ic]);
 
-    LE32 *fix[4];
+    LE32 *fix[4];   // 这里存的是相对所在段的偏移 例如：偏移:0x1004，段起始地址：0x1000，段内偏移为：0x1004-0x1000=0x4，最终保存为：0x4
     for (; ic; ic--)
         fix[ic] = New(LE32, counts[ic]);
 
-    unsigned xcounts[4];
+    unsigned xcounts[4];    // 记录重新分拣的导入表数据
     memset(xcounts, 0, sizeof(xcounts));
 
     // prepare sorting
+    // 将导入表中的数据保存到 fix中
     unsigned pos,type;
     while (rel.next(pos,type))
     {
         if (pos >= ih.imagesize)
-            continue;           // skip out-of-bounds record
+            continue;           // 跳过超出编辑的记录
         if (type < 4)
-            fix[type][xcounts[type]++] = pos - rvamin;
+            fix[type][xcounts[type]++] = pos - rvamin;  // example：fix[3][xcounts[3]++] = 1004 - 1000
     }
 
     // remove duplicated records
+    // 移除重复的记录
     for (ic = 1; ic <= 3; ic++)
     {
+        // 先排序
         qsort(fix[ic], xcounts[ic], 4, le32_compare);
-        unsigned prev = ~0u;
-        unsigned jc = 0;
+        unsigned prev = ~0u;    // 上一条记录
+        unsigned jc = 0;    // current index
+        // 处理各类型的重定位记录
         for (unsigned kc = 0; kc < xcounts[ic]; kc++)
             if (fix[ic][kc] != prev)
                 prev = fix[ic][jc++] = fix[ic][kc];
 
         //printf("xcounts[%u] %u->%u\n", ic, xcounts[ic], jc);
-        xcounts[ic] = jc;
+        xcounts[ic] = jc;   // 记录新的导入记录数量
     }
 
     // preprocess "type 3" relocation records
+    // 预处理类型为3的重定位记录
     for (ic = 0; ic < xcounts[3]; ic++)
     {
         pos = fix[3][ic] + rvamin;
@@ -450,8 +466,9 @@ void PeFile32::processRelocs() // pass1
         set_le32(ibuf + pos, w - ih.imagebase - rvamin);
     }
 
-    ibuf.fill(IDADDR(PEDIR_RELOC), IDSIZE(PEDIR_RELOC), FILLVAL);
-    orelocs = new upx_byte [mem_size(4, rnum, 1024)];  // 1024 - safety
+    ibuf.fill(IDADDR(PEDIR_RELOC), IDSIZE(PEDIR_RELOC), FILLVAL); // 原始重定位块抹零
+    
+    orelocs = new upx_byte [mem_size(4, rnum, 1024)];  // 为新导入数据申请内存，最小安全大小为1024 // 1024 - safety 
     sorelocs = ptr_diff(optimizeReloc32((upx_byte*) fix[3], xcounts[3],
                             orelocs, ibuf + rvamin, 1, &big_relocs),
                         orelocs);

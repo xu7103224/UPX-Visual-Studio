@@ -24,7 +24,10 @@
    Markus F.X.J. Oberhumer              Laszlo Molnar
    <markus@oberhumer.com>               <ezerotven+github@gmail.com>
  */
-
+/*
+* bele.h
+* 读写内存大端或小端数据
+*/
 
 #ifndef __UPX_BELE_H
 #define __UPX_BELE_H 1
@@ -34,6 +37,9 @@
 // core
 **************************************************************************/
 
+/*
+* 取大端16位值
+*/
 inline unsigned get_be16(const void *p)
 {
 #if defined(ACC_UA_GET_BE16)
@@ -43,6 +49,9 @@ inline unsigned get_be16(const void *p)
 #endif
 }
 
+/*
+* 设置大端16位值
+*/
 inline void set_be16(void *p, unsigned v)
 {
 #if defined(ACC_UA_SET_BE16)
@@ -52,6 +61,9 @@ inline void set_be16(void *p, unsigned v)
 #endif
 }
 
+/*
+* 取大端24位值
+*/
 inline unsigned get_be24(const void *p)
 {
 #if defined(ACC_UA_GET_BE24)
@@ -61,6 +73,9 @@ inline unsigned get_be24(const void *p)
 #endif
 }
 
+/*
+* 设置大端24位值
+*/
 inline void set_be24(void *p, unsigned v)
 {
 #if defined(ACC_UA_SET_BE24)
@@ -70,6 +85,9 @@ inline void set_be24(void *p, unsigned v)
 #endif
 }
 
+/*
+* 取大端32位值
+*/
 inline unsigned get_be32(const void *p)
 {
 #if defined(ACC_UA_GET_BE32)
@@ -79,6 +97,9 @@ inline unsigned get_be32(const void *p)
 #endif
 }
 
+/*
+* 设置大端32位值
+*/
 inline void set_be32(void *p, unsigned v)
 {
 #if defined(ACC_UA_SET_BE32)
@@ -88,6 +109,9 @@ inline void set_be32(void *p, unsigned v)
 #endif
 }
 
+/*
+* 取大端64位值
+*/
 inline upx_uint64_t get_be64(const void *p)
 {
 #if defined(ACC_UA_GET_BE64)
@@ -97,6 +121,9 @@ inline upx_uint64_t get_be64(const void *p)
 #endif
 }
 
+/*
+* 设置大端64位值
+*/
 inline void set_be64(void *p, upx_uint64_t v)
 {
 #if defined(ACC_UA_SET_BE64)
@@ -106,6 +133,10 @@ inline void set_be64(void *p, upx_uint64_t v)
 #endif
 }
 
+
+/*
+* 取小端24位值
+*/
 inline unsigned get_le16(const void *p)
 {
 #if defined(ACC_UA_GET_LE16)
@@ -115,6 +146,9 @@ inline unsigned get_le16(const void *p)
 #endif
 }
 
+/*
+* 设置小端16位值
+*/
 inline void set_le16(void *p, unsigned v)
 {
 #if defined(ACC_UA_SET_LE16)
@@ -124,6 +158,9 @@ inline void set_le16(void *p, unsigned v)
 #endif
 }
 
+/*
+* 取小端24位值
+*/
 inline unsigned get_le24(const void *p)
 {
 #if defined(ACC_UA_GET_LE24)
@@ -133,6 +170,9 @@ inline unsigned get_le24(const void *p)
 #endif
 }
 
+/*
+* 设置小端24位值
+*/
 inline void set_le24(void *p, unsigned v)
 {
 #if defined(ACC_UA_SET_LE24)
@@ -142,6 +182,9 @@ inline void set_le24(void *p, unsigned v)
 #endif
 }
 
+/*
+* 取小端26位值
+*/
 inline unsigned get_le26(const void *p)
 {
     const acc_hbyte_p b = ACC_CCAST(const acc_hbyte_p, p);
@@ -149,6 +192,9 @@ inline unsigned get_le26(const void *p)
           (ACC_ICONV(acc_uint32l_t, b[2]) << 16) | (((ACC_ICONV(acc_uint32l_t, b[3]) & 3)<< 24));
 }
 
+/*
+* 设置小端26位值
+*/
 inline void set_le26(void *p, unsigned v)
 {
     acc_hbyte_p b = ACC_PCAST(acc_hbyte_p, p);
@@ -158,6 +204,9 @@ inline void set_le26(void *p, unsigned v)
     b[3] = ACC_ICONV(unsigned char, (v >> 24) & 0x03) | (0xFC & b[3]);
 }
 
+/*
+* 取小端32位值
+*/
 inline unsigned get_le32(const void *p)
 {
 #if defined(ACC_UA_GET_LE32)
@@ -167,6 +216,9 @@ inline unsigned get_le32(const void *p)
 #endif
 }
 
+/*
+* 设置小端32位值
+*/
 inline void set_le32(void *p, unsigned v)
 {
 #if defined(ACC_UA_SET_LE32)
@@ -176,6 +228,9 @@ inline void set_le32(void *p, unsigned v)
 #endif
 }
 
+/*
+* 取小端64位值
+*/
 inline upx_uint64_t get_le64(const void *p)
 {
 #if defined(ACC_UA_GET_LE64)
@@ -185,6 +240,9 @@ inline upx_uint64_t get_le64(const void *p)
 #endif
 }
 
+/*
+* 设置小端64位值
+*/
 inline void set_le64(void *p, upx_uint64_t v)
 {
 #if defined(ACC_UA_SET_LE64)
@@ -197,8 +255,14 @@ inline void set_le64(void *p, upx_uint64_t v)
 
 /*************************************************************************
 // get signed values, i.e. sign-extend
+// 获取有符号的值
 **************************************************************************/
 
+/*
+* 符号拓展
+* v:    值
+* bits: 位数，32位或以下
+*/
 inline int sign_extend(unsigned v, unsigned bits)
 {
     const unsigned sign_bit = 1u << (bits - 1);
@@ -207,6 +271,11 @@ inline int sign_extend(unsigned v, unsigned bits)
     return ACC_ICAST(int, v);
 }
 
+/*
+* 符号拓展
+* v:    值
+* bits: 位数，64位或以下
+*/
 inline upx_int64_t sign_extend(upx_uint64_t v, unsigned bits)
 {
     const upx_uint64_t sign_bit = UPX_UINT64_C(1) << (bits - 1);
@@ -215,48 +284,72 @@ inline upx_int64_t sign_extend(upx_uint64_t v, unsigned bits)
     return ACC_ICAST(upx_int64_t, v);
 }
 
+/*
+* 取大端带符号16位值
+*/
 inline int get_be16_signed(const void *p)
 {
     unsigned v = get_be16(p);
     return sign_extend(v, 16);
 }
 
+/*
+* 取大端带符号24位值
+*/
 inline int get_be24_signed(const void *p)
 {
     unsigned v = get_be24(p);
     return sign_extend(v, 24);
 }
 
+/*
+* 取大端带符号32位值
+*/
 inline int get_be32_signed(const void *p)
 {
     unsigned v = get_be32(p);
     return sign_extend(v, 32);
 }
 
+/*
+* 取大端带符号64位值
+*/
 inline upx_int64_t get_be64_signed(const void *p)
 {
     upx_uint64_t v = get_be64(p);
     return sign_extend(v, 64);
 }
 
+/*
+* 取小端带符号16位值
+*/
 inline int get_le16_signed(const void *p)
 {
     unsigned v = get_le16(p);
     return sign_extend(v, 16);
 }
 
+/*
+* 取小端带符号24位值
+*/
 inline int get_le24_signed(const void *p)
 {
     unsigned v = get_le24(p);
     return sign_extend(v, 24);
 }
 
+/*
+* 取小端带符号32位值
+*/
 inline int get_le32_signed(const void *p)
 {
     unsigned v = get_le32(p);
     return sign_extend(v, 32);
 }
 
+/*
+* 取小端带符号64位值
+*/
 inline upx_int64_t get_le64_signed(const void *p)
 {
     upx_uint64_t v = get_le64(p);
@@ -268,12 +361,18 @@ inline upx_int64_t get_le64_signed(const void *p)
 // swab (bswap)
 **************************************************************************/
 
+/*
+* 倒置字节序
+*/
 inline unsigned acc_swab16(unsigned v)
 {
     return ((v & 0x00ff) << 8) |
            ((v & 0xff00) >> 8);
 }
 
+/*
+* 倒置字节序
+*/
 inline unsigned acc_swab32(unsigned v)
 {
     return ((v & 0x000000ff) << 24) |

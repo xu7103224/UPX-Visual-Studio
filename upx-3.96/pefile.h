@@ -117,8 +117,8 @@ protected:
     void processRelocs(Reloc *);
     void rebuildRelocs(upx_byte *&, unsigned bits,
                        unsigned flags, upx_uint64_t imagebase);
-    upx_byte *orelocs;
-    unsigned sorelocs;
+    upx_byte *orelocs;  // 要输出的重定位记录缓存
+    unsigned sorelocs;  // 
     upx_byte *oxrelocs;
     unsigned soxrelocs;
 
@@ -131,8 +131,8 @@ protected:
     void processResources(Resource *);
     void processResources(Resource *, unsigned);
     void rebuildResources(upx_byte *&, unsigned);
-    upx_byte *oresources;
-    unsigned soresources;
+    upx_byte *oresources;   // 输出资源
+    unsigned soresources;   // 输出资源大小
 
     template <typename>
     struct tls_traits;
@@ -166,7 +166,7 @@ protected:
 
     bool importbyordinal;
     bool kernel32ordinal;
-    unsigned rvamin;
+    unsigned rvamin;                // 最小段的RVA值
     unsigned cimports;              // rva of preprocessed imports
     unsigned crelocs;               // rva of preprocessed fixups
     int big_relocs;
@@ -320,9 +320,9 @@ protected:
         void newRelocPos(void *p);
 
         struct reloc;
-        reloc *rel;
-        LE16 *rel1;
-        unsigned counts[16];
+        reloc *rel;             // 块头
+        LE16 *rel1;             // 起始地址
+        unsigned counts[16];    // 各类型的重定位信息数量（0.参考是绝对的，不需要重新定位 1.修改高16位 2.修改低16位 3...）
 
     public:
         Reloc(upx_byte *,unsigned);
