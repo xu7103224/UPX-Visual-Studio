@@ -1013,7 +1013,8 @@ upx_byte *Packer::optimizeReloc(upx_byte *in, unsigned relocnum,
     pc = (unsigned) -4;
     for (jc = 0; jc<relocnum; jc++)
     {
-        oc = get_le32(in+jc*4) - pc;    //example 4  - (-4) = 8 得到的是重定位数据的尾部到段首的偏移
+        //example 4  - (-4) = 8 得到的是重定位数据的尾部到上一个重定位数据的偏移，如果是第一个则为到段首的偏移
+        oc = get_le32(in+jc*4) - pc;    
         if (oc == 0)
             continue;
         else if ((int)oc < 4)   //这里不可能小于4，除非出错。。。
