@@ -80,7 +80,8 @@ public:
     const int *preferred_ctos;
 
     // Input/output parameters used by various filters
-    unsigned char cto;              // call trick offset
+    // 跳转范围大于代码块范围则将偏移首字节当成下表在buf中标记位1，这里记录的是从buf首字节开始第一个不为1的字节下标
+    unsigned char cto;   // call trick offset
 
     // Output used by various filters. Read only.
     unsigned calls;

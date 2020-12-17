@@ -62,12 +62,15 @@ static int F(Filter *f)
             if (!COND(b,ic))
                 continue;
             jc = get_le32(b+ic+1)+ic+1;
-            if (jc < size)
+            if (jc < size) // 如果跳转范围大于代码块范围则将偏移首字节当成下表在buf中标记位1
             {
                 if (jc + addvalue >= (1u << 24)) // hi 8 bits won't be cto8
                     return -1;
             }
             else
+            {
+                // 标记
+            }
                 buf[b[ic+1]] |= 1;
         }
 
