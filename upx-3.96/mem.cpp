@@ -162,8 +162,8 @@ void MemBuffer::fill(unsigned off, unsigned len, int value)
 **************************************************************************/
 
 #define PTR(p)      ((unsigned) ((upx_uintptr_t)(p) & 0xffffffff))
-#define MAGIC1(p)   (PTR(p) ^ 0xfefdbeeb)
-#define MAGIC2(p)   (PTR(p) ^ 0xfefdbeeb ^ 0x80024001)
+#define MAGIC1(p)   (PTR(p) ^ 0xfefdbeeb)               // 内存数据的起始标记
+#define MAGIC2(p)   (PTR(p) ^ 0xfefdbeeb ^ 0x80024001)  // 内存数据的结束标记
 
 unsigned MemBuffer::global_alloc_counter = 0;
 

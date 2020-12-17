@@ -103,10 +103,10 @@ protected:
                         ord_mask_t ord_mask, bool set_oft);
     virtual unsigned processImports() = 0;
     virtual void processImports2(unsigned, unsigned);
-    upx_byte *oimport;
-    unsigned soimport;
-    upx_byte *oimpdlls;
-    unsigned soimpdlls;
+    upx_byte *oimport;  // 输出的导入表
+    unsigned soimport;  // 输出的导入表大小
+    upx_byte *oimpdlls; // 输出的dll表
+    unsigned soimpdlls; // 输出的dll表大小
     ImportLinker *ilinker;
     virtual const char *kernelDll() const { return "KERNEL32.DLL"; }
     void addKernelImport(const char *);
@@ -118,7 +118,7 @@ protected:
     void rebuildRelocs(upx_byte *&, unsigned bits,
                        unsigned flags, upx_uint64_t imagebase);
     upx_byte *orelocs;  // 要输出的重定位记录缓存
-    unsigned sorelocs;  // 
+    unsigned sorelocs;  // orelocs中数据的size
     upx_byte *oxrelocs;
     unsigned soxrelocs;
 
@@ -167,9 +167,9 @@ protected:
     bool importbyordinal;
     bool kernel32ordinal;
     unsigned rvamin;                // 最小段的RVA值
-    unsigned cimports;              // rva of preprocessed imports
-    unsigned crelocs;               // rva of preprocessed fixups
-    int big_relocs;
+    unsigned cimports;              // 输出导入表的大小  rva of preprocessed imports
+    unsigned crelocs;               // 输出重定位表的大小  rva of preprocessed fixups
+    int big_relocs;                 // 是否包含超大项 （与前一个重定位点之间的间距超大的项）
 
     __packed_struct(ddirs_t)        // _IMAGE_DATA_DIRECTORY
         LE32    vaddr;              // rva地址
@@ -200,14 +200,14 @@ protected:
         LE32    flags;
     __packed_struct_end()
 
-    pe_section_t *isection;     // 所有节
+    pe_section_t *isection;     // 输入程序的所有节
     bool isdll;
     bool isrtm;
     bool use_dep_hack;
     bool use_clear_dirty_stack;
 
 
-    static unsigned virta2objnum (unsigned, pe_section_t *, unsigned);
+    static unsigned virta2objnum (unsigned, pe_section_t *, unsigned);  //根据虚拟映射地址获取节下标
     unsigned tryremove (unsigned, unsigned);
 
     enum {
@@ -228,10 +228,11 @@ protected:
         PEDIR_COMRT     = 14            // Com+ Runtime Header
     };
 
+    // 段属性 (pe section type)
     enum {
-        PEFL_CODE       = 0x20,
-        PEFL_DATA       = 0x40,
-        PEFL_BSS        = 0x80,
+        PEFL_CODE       = 0x20,         // 代码段
+        PEFL_DATA       = 0x40,         // 已初始化数据段
+        PEFL_BSS        = 0x80,         // 未初始化数据段
         PEFL_INFO       = 0x200,
         PEFL_EXTRELS    = 0x01000000,   // extended relocations
         PEFL_DISCARD    = 0x02000000,
@@ -465,8 +466,8 @@ protected:
         LE32    database;
         // nt specific fields
         LE32    imagebase;
-        LE32    objectalign;
-        LE32    filealign;          // should set to 0x200 ?
+        LE32    objectalign;        // 段对齐
+        LE32    filealign;          // 文件对齐 should set to 0x200 ? 
         // 0x40
         char    ____[16];           // versions
         // 0x50
@@ -527,8 +528,8 @@ protected:
         //LE32    database;         // field does not exist in PE+!
         // nt specific fields
         LE64    imagebase;          // LE32 -> LE64 - Stefan Widmann standard is 0x0000000140000000
-        LE32    objectalign;
-        LE32    filealign;          // should set to 0x200 ?
+        LE32    objectalign;        // 段对齐
+        LE32    filealign;          // 文件对齐 should set to 0x200 ?
         // 0x40
         char    ____[16];           // versions
         // 0x50

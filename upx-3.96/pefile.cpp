@@ -482,6 +482,9 @@ void PeFile32::processRelocs() // pass1
         throwCantUnpack("Invalid relocs");
 
     // append relocs type "LOW" then "HIGH"
+    /*
+    * 附加类型为0到2的重定位数据，一般没数据
+    */
     for (ic = 2; ic ; ic--)
     {
         memcpy(orelocs + sorelocs,fix[ic],4 * xcounts[ic]);
@@ -2092,7 +2095,13 @@ void PeFile::processResources(Resource *res)
     info("Resources: compressed %u (%u bytes), not compressed %u (%u bytes)",cnum,csize,unum,usize);
 }
 
-
+/*
+* 功能: 根据虚拟映射地址获取节下标
+* 参数:
+*   addr: 虚拟映射地址
+*   sect: 节表
+*   objs: 节数量
+*/
 unsigned PeFile::virta2objnum(unsigned addr,pe_section_t *sect,unsigned objs)
 {
     unsigned ic;
@@ -2332,6 +2341,7 @@ void PeFile::pack0(OutputFile *fo, ht &ih, ht &oh,
     if (opt->exact)
         throwCantPackExact();
 
+    // 输出程序的节数
     const unsigned objs = ih.objects;
     readSectionHeaders(objs, sizeof(ih));
     if (!opt->force && handleForceOption())
@@ -2356,7 +2366,7 @@ void PeFile::pack0(OutputFile *fo, ht &ih, ht &oh,
     Interval loadconfiv(ibuf);
     Export xport((char*)(unsigned char*)ibuf);
 
-    const unsigned dllstrings = processImports();
+    const unsigned dllstrings = processImports();   // 这是什么？
     processTls(&tlsiv); // call before processRelocs!!
     processLoadConf(&loadconfiv);
     processResources(&res);
@@ -2366,14 +2376,15 @@ void PeFile::pack0(OutputFile *fo, ht &ih, ht &oh,
     //OutputFile::dump("x1", ibuf, usize);
 
     // some checks for broken linkers - disable filter if necessary
-    bool allow_filter = true;
+    // 是否允许过滤
+    bool allow_filter = true;   // 默认开启
     if (/*FIXME ih.codebase == ih.database
-        ||*/ ih.codebase + ih.codesize > ih.imagesize
-        || (isection[virta2objnum(ih.codebase,isection,objs)].flags & PEFL_CODE) == 0)
-        allow_filter = false;
+        ||*/ ih.codebase + ih.codesize > ih.imagesize                                   // 节映射边际超过文件大小
+        || (isection[virta2objnum(ih.codebase,isection,objs)].flags & PEFL_CODE) == 0)  // 代码段的flags不包含PEFL_CODE属性
+        allow_filter = false;   // 过滤关闭
 
     const unsigned oam1 = ih.objectalign - 1;
-    if ((1+ oam1) & oam1) { // ih.objectalign is not a power of 2
+    if ((1+ oam1) & oam1) { // 判断是否不为2的密 （ih.objectalign is not a power of 2）
         char buf[32]; snprintf(buf, sizeof(buf), "bad alignment %#x", 1+ oam1);
         throwCantPack(buf);
     }
@@ -2384,13 +2395,17 @@ void PeFile::pack0(OutputFile *fo, ht &ih, ht &oh,
     // FIXME: if the last object has a bss then this won't work
     // newvsize = (isection[objs-1].vaddr + isection[objs-1].size + oam1) &~ oam1;
     // temporary solution:
-    unsigned newvsize = (isection[objs-1].vaddr + isection[objs-1].vsize + oam1) &~ oam1;
+
+    // 修正: 如果最后一个段为bss那么下面这段代码将无法工作
+    // newvsize = (isection[objs-1].vaddr + isection[objs-1].size + oam1) &~ oam1;  // 采用最后一个段的文件大小
+    // 下面这行是临时解决方案: 
+    unsigned newvsize = (isection[objs-1].vaddr + isection[objs-1].vsize + oam1) &~ oam1;   // 采用最后一个段的虚拟大小
 
     //fprintf(stderr,"newvsize=%x objs=%d\n",newvsize,objs);
-    if (newvsize + soimport + sorelocs > ibuf.getSize())
+    if (newvsize + soimport + sorelocs > ibuf.getSize()) // 如果 新的段大小+输出导入表大小+输出重定位表    > 输入文件大小 则异常
          throwInternalError("buffer too small 2");
-    memcpy(ibuf+newvsize,oimport,soimport);
-    memcpy(ibuf+newvsize+soimport,orelocs,sorelocs);
+    memcpy(ibuf+newvsize,oimport,soimport); // 追加输出导入表到输入文件缓存中
+    memcpy(ibuf+newvsize+soimport,orelocs,sorelocs);// 追加输出重定位表到输入文件缓存中
 
     cimports = newvsize - rvamin;   // rva of preprocessed imports
     crelocs = cimports + soimport;  // rva of preprocessed fixups
@@ -2400,32 +2415,33 @@ void PeFile::pack0(OutputFile *fo, ht &ih, ht &oh,
     // some extra data for uncompression support
     unsigned s = 0;
     upx_byte * const p1 = ibuf.subref("bad ph.u_len %#x", ph.u_len, sizeof(ih));
-    memcpy(p1 + s,&ih,sizeof (ih));
+    memcpy(p1 + s,&ih,sizeof (ih)); // 拷贝pe头
     s += sizeof (ih);
-    memcpy(p1 + s,isection,ih.objects * sizeof(*isection));
+    memcpy(p1 + s,isection,ih.objects * sizeof(*isection)); // 拷贝节表
     s += ih.objects * sizeof(*isection);
     if (soimport)
     {
-        set_le32(p1 + s,cimports);
-        set_le32(p1 + s + 4,dllstrings);
+        set_le32(p1 + s,cimports);  // 记录导入表 size
+        set_le32(p1 + s + 4,dllstrings); // 记录dllstring size？
         s += 8;
     }
     if (sorelocs)
     {
-        set_le32(p1 + s,crelocs);
+        set_le32(p1 + s,crelocs); // 记录重定位表位置
         p1[s + 4] = (unsigned char) (big_relocs & 6);
         s += 5;
     }
-    if (soresources)
+    if (soresources) 
     {
-        set_le16(p1 + s,icondir_count);
+        set_le16(p1 + s,icondir_count); // 记录资源大小
         s += 2;
     }
     // end of extra data
+    // 记录额外数据的大小
     set_le32(p1 + s,ptr_diff(p1,ibuf) - rvamin);
     s += 4;
     ph.u_len += s;
-    obuf.allocForCompression(ph.u_len);
+    obuf.allocForCompression(ph.u_len); // 分配压缩（实际上对数据的头尾加了MAGIC1和MAGIC2标记用于检测移除 addr -8处记录数据大小）
 
     // prepare packheader
     if (ph.u_len < rvamin) { // readSectionHeaders() should have caught this

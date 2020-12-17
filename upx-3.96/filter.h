@@ -72,6 +72,7 @@ public:
 
     // Checksum of the buffer before applying the filter
     // or after un-applying the filter.
+    // 启用筛选器和弃用删选器之后的缓冲区校验值
     unsigned adler;
 
     // Input parameters used by various filters.

@@ -308,8 +308,8 @@ protected:
     int ph_version;
 
     // compression buffers
-    MemBuffer ibuf;         // input
-    MemBuffer obuf;         // output
+    MemBuffer ibuf;         // 输入的文件的内存拷贝 input    
+    MemBuffer obuf;         // 输出文件的内存拷贝 output
 
     // UI handler
     UiPacker *uip;

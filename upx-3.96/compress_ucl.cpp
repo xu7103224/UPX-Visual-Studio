@@ -303,6 +303,9 @@ const char *upx_ucl_version_string(void)
     return ucl_version_string();
 }
 
+/*
+* 得到一个32位校验值
+*/
 unsigned upx_ucl_adler32(const void *buf, unsigned len, unsigned adler)
 {
     return ucl_adler32(adler, (const ucl_bytep) buf, len);

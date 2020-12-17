@@ -129,6 +129,9 @@ _ucl_version_date(void)
 #define UCL_DO16(buf,i) UCL_DO8(buf,i); UCL_DO8(buf,i+8);
 
 UCL_PUBLIC(ucl_uint32)
+/*
+* 得到一个32位校验值
+*/
 ucl_adler32(ucl_uint32 adler, const ucl_bytep buf, ucl_uint len)
 {
     ucl_uint32 s1 = adler & 0xffff;
