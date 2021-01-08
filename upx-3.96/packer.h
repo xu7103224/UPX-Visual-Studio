@@ -64,7 +64,7 @@ public:
     int version;
     int format;                 // executable format
     int method;                 // compresison method
-    int level;                  // compresison level 1..10
+    int level;                  // compresison level 1..10  Ó°Ïì¹ıÂË²ßÂÔ
     unsigned u_len;
     unsigned c_len;
     unsigned u_adler;

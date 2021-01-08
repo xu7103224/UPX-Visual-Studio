@@ -50,6 +50,13 @@ class FilterImp;
 // to absolute addresses so that the buffer compresses better.
 **************************************************************************/
 
+/*
+* 过滤器是一种可逆操作，它修改给定的内存块。
+* 筛选器可能会失败并返回false。在这种情况下，缓存必须不被修改（或以其他方式还原）。
+* 如果一个过滤器失败并且无法恢复块，它必须调用throwFilterException（）——这将导致压缩失败。
+* 如果出现错误，抛出未压缩异常。
+* 这个过滤器想法的背后是通过转换相对跳转和调用地址为绝对地址，这样可以更好地将缓存压缩。
+*/
 class Filter
 {
 public:
@@ -67,15 +74,17 @@ public:
 public:
     // Will be set by each call to filter()/unfilter().
     // Read-only afterwards.
-    upx_byte *buf;
-    unsigned buf_len;
+    // 将由每次调用filter（） / unfilter（）设置。以后只读。
+    upx_byte *buf; // 将被过滤的缓存
+    unsigned buf_len; // 缓存大小
 
     // Checksum of the buffer before applying the filter
     // or after un-applying the filter.
     // 启用筛选器和弃用删选器之后的缓冲区校验值
-    unsigned adler;
+    unsigned adler; // 就是原始缓存的校验值，使用 upx_adler32函数校验。
 
     // Input parameters used by various filters.
+    // 各种过滤器使用的输入参数。
     unsigned addvalue;
     const int *preferred_ctos;
 
@@ -84,11 +93,11 @@ public:
     unsigned char cto;   // call trick offset
 
     // Output used by various filters. Read only.
-    unsigned calls;
-    unsigned noncalls;
+    unsigned calls; // 累计调用指令数
+    unsigned noncalls; // 非调用的E8或者E9数量
     unsigned wrongcalls;
     unsigned firstcall;
-    unsigned lastcall;
+    unsigned lastcall; // 指向上一个调用指令的后一条指令
     unsigned n_mru;  // ctojr only
 
     // Read only.
@@ -106,6 +115,7 @@ private:
 // This class is private to Filter - don't look.
 **************************************************************************/
 
+//过滤器的管理类
 class FilterImp
 {
     friend class Filter;
@@ -113,21 +123,28 @@ class FilterImp
 private:
     struct FilterEntry
     {
-        int id;                             // 0 .. 255
+        int id;                             // id 范围 0 ~ 255
         unsigned min_buf_len;
         unsigned max_buf_len;
-        int (*do_filter)(Filter *);         // filter a buffer
-        int (*do_unfilter)(Filter *);       // unfilter a buffer
-        int (*do_scan)(Filter *);           // scan a buffer
+        // filter a buffer
+        int (*do_filter)(Filter *);         // 筛选一块缓存
+        // unfilter a buffer
+        int (*do_unfilter)(Filter *);       // 还原一块缓存
+        // scan a buffer
+        int (*do_scan)(Filter *);           // 扫描一块缓存
     };
 
     // get a specific filter entry
+    // 获取一个指定过滤器
     static const FilterEntry *getFilter(int id);
 
 private:
     // strictly private filter database
+    // 严格私有的过滤数器据库
     static const FilterEntry filters[];
-    static const int n_filters;             // number of filters[]
+    // number of filters[]
+    // 过滤器数组的数量
+    static const int n_filters;             
 };
 
 

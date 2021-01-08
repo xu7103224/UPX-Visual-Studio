@@ -187,6 +187,15 @@ bool ph_skipVerify(const PackHeader &ph)
 // compress - wrap call to low-level upx_compress()
 **************************************************************************/
 
+/*
+* 功能: 压缩过滤过的原始可执行文件
+* 参数: 
+    i_ptr: 过滤过的原文件
+    i_len: 文件大小
+    o_ptr: 输出缓存
+    cconf_parm: 压缩配置
+* 
+*/
 bool Packer::compress(upx_bytep i_ptr, unsigned i_len, upx_bytep o_ptr,
                       const upx_compress_config_t *cconf_parm)
 {
@@ -1207,7 +1216,10 @@ void Packer::initLoader(const void *pdata, int plen, int small)
     linker->init(pdata, plen);
 
     unsigned size;
+    
+    //获取版本号
     char const * const ident = getIdentstr(&size, small);
+    //将版本号插入节中
     linker->addSection("IDENTSTR", ident, size, 0);
 }
 
@@ -1534,7 +1546,7 @@ void Packer::compressWithFilters(upx_bytep i_ptr, unsigned i_len,
             ft.init(ph.filter, orig_ft.addvalue);
             // filter
             optimizeFilter(&ft, f_ptr, f_len);
-            bool success = ft.filter(f_ptr, f_len);
+            bool success = ft.filter(f_ptr, f_len); // 过滤代码段(类似加密调用偏移)
             if (ft.id != 0 && ft.calls == 0)
             {
                 // filter did not do anything - no need to call ft.unfilter()
@@ -1612,6 +1624,7 @@ void Packer::compressWithFilters(upx_bytep i_ptr, unsigned i_len,
                 }
             }
             // restore - unfilter with verify
+            // 还原并验证
             ft.unfilter(f_ptr, f_len, true);
             if (filter_strategy < 0)
                 break;

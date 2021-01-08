@@ -136,11 +136,12 @@ bool Filter::filter(upx_byte *buf_, unsigned buf_len_)
     // save checksum
     this->adler = 0;
     if (clevel != 1)
-        this->adler = upx_adler32(this->buf, this->buf_len);
+        this->adler = upx_adler32(this->buf, this->buf_len);    // 获取一个校验值
 
     //printf("filter: %02x %p %d\n", this->id, this->buf, this->buf_len);
     //OutputFile::dump("filter.dat", buf, buf_len);
-    int r = (*fe->do_filter)(this);
+    // 调用过滤器
+    int r = (*fe->do_filter)(this); //cto.h static int F(Filter *f)
     //printf("filter: %02x %d\n", fe->id, r);
     if (r > 0)
         throwFilterException();

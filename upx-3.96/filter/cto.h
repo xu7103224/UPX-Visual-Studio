@@ -43,9 +43,16 @@ static int F(Filter *f)
     const unsigned addvalue = f->addvalue;
     const unsigned size = f->buf_len;
 
-    unsigned ic, jc, kc;
-    unsigned calls = 0, noncalls = 0, noncalls2 = 0;
-    unsigned lastnoncall = size, lastcall = 0;
+    unsigned 
+        ic,
+        jc, // 跳转偏移
+        kc;
+    unsigned calls = 0, // 调用计数
+        noncalls = 0, // 非调用的E8或者E9数量
+        noncalls2 = 0;
+    unsigned 
+        lastnoncall = size, // 最后一个非调用指令(例如数据中带有E8)位置，默认指向代码段尾部
+        lastcall = 0; // 指向上一个调用指令的后一条指令
 
     // find a 16 MiB large empty address space
     {
@@ -70,28 +77,31 @@ static int F(Filter *f)
             else
             {
                 // 标记
+                buf[b[ic + 1]] |= 1;
             }
-                buf[b[ic+1]] |= 1;
         }
 
-        if (getcto(f, buf) < 0)
+        if (getcto(f, buf) < 0) // 获取连续标记数量
             return -1;
     }
-    const unsigned char cto8 = f->cto;
+    const unsigned char cto8 = f->cto;  // 获取连续标记数量
 #ifdef U
-    const unsigned cto = (unsigned)f->cto << 24;
+    const unsigned cto = (unsigned)f->cto << 24;    
 #endif
 
     for (ic = 0; ic < size - 5; ic++)
     {
         if (!COND(b,ic))
             continue;
-        jc = get_le32(b+ic+1)+ic+1;
+        
+        jc = get_le32(b+ic+1)+ic+1; // 调用的跳转偏移 + 该行代码到代码段首的偏移 + 1  
         // try to detect 'real' calls only
         if (jc < size)
         {
             assert(jc + addvalue < (1u << 24)); // hi 8 bits won't be cto8
 #ifdef U
+            // 重写偏移: 首地址b + 代码偏移ic + 1， 
+            // 新的跳转偏移算法:  转换为大端(造后的偏移jc + addvalue(一般为0) + cto << 24)
             set_be32(b+ic+1,jc+addvalue+cto);
 #endif
             if (ic - lastnoncall < 5)

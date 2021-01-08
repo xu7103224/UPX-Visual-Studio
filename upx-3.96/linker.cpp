@@ -123,6 +123,9 @@ ElfLinker::~ElfLinker() {
     free(relocations);
 }
 
+/*
+* 添加 pdata_v 中节、符号、重定位数据到linker中
+*/
 void ElfLinker::init(const void *pdata_v, int plen) {
     const upx_byte *pdata = (const upx_byte *) pdata_v;
     if (plen >= 16 && memcmp(pdata, "UPX#", 4) == 0) {
@@ -182,6 +185,9 @@ void ElfLinker::init(const void *pdata_v, int plen) {
     }
 }
 
+/*
+* 将start到end中的节数据添加到 ElfLinker::sections
+*/
 void ElfLinker::preprocessSections(char *start, char *end) {
     char *nextl;
     for (nsections = 0; start < end; start = 1 + nextl) {
@@ -204,6 +210,9 @@ void ElfLinker::preprocessSections(char *start, char *end) {
     addSection("*UND*", NULL, 0, 0);
 }
 
+/*
+* 将start到end中的符号数据添加到 ElfLinker::symbols
+*/
 void ElfLinker::preprocessSymbols(char *start, char *end) {
     char *nextl;
     for (nsymbols = 0; start < end; start = 1 + nextl) {
@@ -240,6 +249,9 @@ void ElfLinker::preprocessSymbols(char *start, char *end) {
     }
 }
 
+/*
+* 将start到end中的重定位数据添加到 ElfLinker::relocations
+*/
 void ElfLinker::preprocessRelocations(char *start, char *end) {
     Section *section = NULL;
     char *nextl;
